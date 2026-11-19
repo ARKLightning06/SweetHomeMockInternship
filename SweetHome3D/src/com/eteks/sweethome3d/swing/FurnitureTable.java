@@ -778,7 +778,51 @@ public class FurnitureTable extends JTable implements View, Printable {
       // Change printable column header renderer
       printableColumn.setHeaderRenderer(printableHeaderRenderer);
       printableColumnModel.addColumn(printableColumn);
-    }    
+    }
+
+    // Add Level column to printed output if home has levels and it's not already visible
+    boolean hasLevelColumn = false;
+    for (int i = 0; i < printableColumnModel.getColumnCount(); i++) {
+      if (HomePieceOfFurniture.SortableProperty.LEVEL.equals(
+              printableColumnModel.getColumn(i).getIdentifier())) {
+        hasLevelColumn = true;
+        break;
+      }
+    }
+    Home home = (Home)((FurnitureTreeTableModel)getModel()).getRoot();
+    if (!hasLevelColumn && !home.getLevels().isEmpty()) {
+      TableColumn levelColumn = new TableColumn();
+      levelColumn.setIdentifier(HomePieceOfFurniture.SortableProperty.LEVEL);
+      levelColumn.setHeaderValue(
+              this.preferences.getLocalizedString(FurnitureTable.class, "levelColumn"));
+      levelColumn.setHeaderRenderer(printableHeaderRenderer);
+      levelColumn.setCellRenderer(new TableCellRenderer() {
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus, int row, int column) {
+          HomePieceOfFurniture piece = (HomePieceOfFurniture)value;
+          Level level = piece != null ? piece.getLevel() : null;
+          Component rendererComponent = defaultRenderer.getTableCellRendererComponent(
+                  table, level != null ? level.getName() : null, false, false, row, column);
+          rendererComponent.setBackground(Color.WHITE);
+          rendererComponent.setForeground(Color.BLACK);
+          return rendererComponent;
+        }
+      });
+      // Insert Level column right after Name column if present, otherwise at the end
+      int insertIndex = printableColumnModel.getColumnCount();
+      for (int i = 0; i < printableColumnModel.getColumnCount(); i++) {
+        if (HomePieceOfFurniture.SortableProperty.NAME.equals(
+                printableColumnModel.getColumn(i).getIdentifier())) {
+          insertIndex = i + 1;
+          break;
+        }
+      }
+      printableColumnModel.addColumn(levelColumn);
+      if (insertIndex < printableColumnModel.getColumnCount() - 1) {
+        printableColumnModel.moveColumn(printableColumnModel.getColumnCount() - 1, insertIndex);
+      }
+    }
+
     return print(g, pageFormat, pageIndex, printableColumnModel, Color.BLACK);
   }
 
